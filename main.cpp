@@ -1,199 +1,272 @@
-#ifndef M_PI  
-#define M_PI 3.14159265358979323846  
-#endif
+#define GLM_ENABLE_EXPERIMENTAL
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <iostream>
-#include <vector>
+#include<iostream>
+#include<glad/glad.h>
+#include<GLFW/glfw3.h>
+#include "stb\stb_image.h"
+#include<glm/glm.hpp>
+#include<glm/gtc/matrix_transform.hpp> 
+#include<glm/gtc/type_ptr.hpp>
 #include <cmath>
-#include <random>
-#include <chrono>
-#include <string>
-#include <fstream>
-#include <sstream>
 
-#include "Shader.h"
-#include "Sea.h"
-#include "Boat.h"
-#include "Camera.h"
 
-// Function prototypes
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow* window);
+#include"shaderClass.h"
+#include"VAO.h"
+#include"VBO.h"
+#include"EBO.h"
+#include"Texture.h"
+#include"Camera.h"
 
-// Camera instance
-Camera camera(glm::vec3(0.0f, 3.0f, 10.0f));
-float lastX = 800.0f / 2.0f;
-float lastY = 600.0f / 2.0f;
-bool firstMouse = true;
 
-// Timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 
-// Boat movement
-bool moveBoat = false;
-bool rotateBoatLeft = false;
-bool rotateBoatRight = false;
 
-int main() {
-    // Initialize GLFW
-    if (!glfwInit()) {
-        std::cout << "Failed to initialize GLFW" << std::endl;
-        return -1;
-    }
+// Vertices coordinates
+GLfloat vertices[] =
+{ //     COORDINATES     /        COLORS          /    TexCoord   /        NORMALS       //
+	-0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f, 	 0.0f, 0.0f,      0.0f, -1.0f, 0.0f, // Bottom side
+	-0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 0.0f, 5.0f,      0.0f, -1.0f, 0.0f, // Bottom side
+	 0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 5.0f,      0.0f, -1.0f, 0.0f, // Bottom side
+	 0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 0.0f,      0.0f, -1.0f, 0.0f, // Bottom side
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	-0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f, 	 0.0f, 0.0f,     -0.8f, 0.5f,  0.0f, // Left Side
+	-0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 0.0f,     -0.8f, 0.5f,  0.0f, // Left Side
+	 0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	 2.5f, 5.0f,     -0.8f, 0.5f,  0.0f, // Left Side
 
-    // Create window
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Boat Simulation", NULL, NULL);
-    if (window == NULL) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
+	-0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 0.0f,      0.0f, 0.5f, -0.8f, // Non-facing side
+	 0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 0.0f, 0.0f,      0.0f, 0.5f, -0.8f, // Non-facing side
+	 0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	 2.5f, 5.0f,      0.0f, 0.5f, -0.8f, // Non-facing side
 
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+	 0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	 0.0f, 0.0f,      0.8f, 0.5f,  0.0f, // Right side
+	 0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 0.0f,      0.8f, 0.5f,  0.0f, // Right side
+	 0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	 2.5f, 5.0f,      0.8f, 0.5f,  0.0f, // Right side
 
-    // Capture mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	 0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	 5.0f, 0.0f,      0.0f, 0.5f,  0.8f, // Facing side
+	-0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f, 	 0.0f, 0.0f,      0.0f, 0.5f,  0.8f, // Facing side
+	 0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	 2.5f, 5.0f,      0.0f, 0.5f,  0.8f  // Facing side
+};
 
-    // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
+// Indices for vertices order
+GLuint indices[] =
+{
+	0, 1, 2, // Bottom side
+	0, 2, 3, // Bottom side
+	4, 6, 5, // Left side
+	7, 9, 8, // Non-facing side
+	10, 12, 11, // Right side
+	13, 15, 14 // Facing side
+};
 
-    // Configure OpenGL
-    glEnable(GL_DEPTH_TEST);
+GLfloat lightVertices[] =
+{ //     COORDINATES     //
+	-0.1f, -0.1f,  0.1f,
+	-0.1f, -0.1f, -0.1f,
+	 0.1f, -0.1f, -0.1f,
+	 0.1f, -0.1f,  0.1f,
+	-0.1f,  0.1f,  0.1f,
+	-0.1f,  0.1f, -0.1f,
+	 0.1f,  0.1f, -0.1f,
+	 0.1f,  0.1f,  0.1f
+};
 
-    // Create and compile shaders
-    Shader seaShader("Shaders/sea.vert", "Shaders/sea.frag");
-    Shader boatShader("Shaders/boat.vert", "Shaders/boat.frag");
+GLuint lightIndices[] =
+{
+	0, 1, 2,
+	0, 2, 3,
+	0, 4, 7,
+	0, 7, 3,
+	3, 7, 6,
+	3, 6, 2,
+	2, 6, 5,
+	2, 5, 1,
+	1, 5, 4,
+	1, 4, 0,
+	4, 5, 6,
+	4, 6, 7
+};
 
-    // Create sea mesh
-    Sea sea(100, 100.0f);
 
-    // Create boat
-    Boat boat(1.0f, 3.0f, 0.8f);
-    boat.setPosition(0.0f, 0.0f);
 
-    // Render loop
-    while (!glfwWindowShouldClose(window)) {
-        // Calculate delta time
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+unsigned int windowWidth = 800;
+unsigned int windowHeight = 800;
 
-        // Process input
-        processInput(window);
 
-        // Update sea waves
-        sea.updateWaves(deltaTime);
+int main()
+{
+	// Initialize GLFW
+	glfwInit();
 
-        // Update boat position and rotation
-        boat.update(sea, deltaTime);
+	// Tell GLFW what version of OpenGL we are using 
+	// In this case we are using OpenGL 3.3
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	// Tell GLFW we are using the CORE profile
+	// So that means we only have the modern functions
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-        // Handle boat movement
-        if (moveBoat) {
-            boat.moveForward(2.0f * deltaTime);
-        }
-        if (rotateBoatLeft) {
-            boat.rotate(-50.0f * deltaTime);
-        }
-        if (rotateBoatRight) {
-            boat.rotate(50.0f * deltaTime);
-        }
+	// Create a GLFWwindow object of 800 by 800 pixels, naming it "YoutubeOpenGL"
+	GLFWwindow* window = glfwCreateWindow(windowWidth, windowHeight, "YoutubeOpenGL", NULL, NULL);
+	// Error check if the window fails to create
+	if (window == NULL)
+	{
+		std::cout << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		return -1;
+	}
+	// Introduce the window into the current context
+	glfwMakeContextCurrent(window);
 
-        // Clear buffers
-        glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	//Load GLAD so it configures OpenGL
+	gladLoadGL();
+	// Specify the viewport of OpenGL in the Window
+	// In this case the viewport goes from x = 0, y = 0, to x = 800, y = 800
+	glViewport(0, 0, windowWidth, windowHeight);
 
-        // Create projection matrix
-        glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), 800.0f / 600.0f, 0.1f, 100.0f);
 
-        // Create view matrix
-        glm::mat4 view = camera.getViewMatrix();
 
-        // Draw sea
-        seaShader.use();
-        seaShader.setMat4("projection", projection);
-        seaShader.setMat4("view", view);
-        seaShader.setMat4("model", glm::mat4(1.0f));
-        seaShader.setVec3("lightPos", glm::vec3(10.0f, 10.0f, 10.0f));
-        seaShader.setVec3("viewPos", camera.getViewMatrix()[3]);
-        seaShader.setFloat("time", currentFrame);
-        sea.draw();
+	Shader shaderProgram("Shaders/default.vert", "Shaders/default.frag");
 
-        // Draw boat
-        boatShader.use();
-        boatShader.setMat4("projection", projection);
-        boatShader.setMat4("view", view);
-        boatShader.setVec3("lightPos", glm::vec3(10.0f, 10.0f, 10.0f));
-        boatShader.setVec3("viewPos", camera.getViewMatrix()[3]);
-        boat.draw(boatShader);
+	VAO VAO1;
+	VAO1.Bind();
 
-        // Swap buffers and poll events
-        glfwSwapBuffers(window);
-        glfwPollEvents();
-    }
+	VBO VBO1(vertices, sizeof(vertices));
+	EBO EBO1(indices, sizeof(indices));
 
-    // Clean up
-    glfwTerminate();
-    return 0;
-}
+	// Link the Vertex Attributes to shaders
+	// 0 = position, 1 = color, 2 = texture coordinates
+	VAO1.LinkAttrib(VBO1, 0, 3, GL_FLOAT, 11 * sizeof(float), (void*)0);
+	VAO1.LinkAttrib(VBO1, 1, 3, GL_FLOAT, 11 * sizeof(float), (void*)(3 * sizeof(float)));
+	VAO1.LinkAttrib(VBO1, 2, 2, GL_FLOAT, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+	VAO1.LinkAttrib(VBO1, 3, 3, GL_FLOAT, 11 * sizeof(float), (void*)(8 * sizeof(float)));
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    glViewport(0, 0, width, height);
-}
+	VAO1.Unbind();
+	VBO1.Unbind();
+	EBO1.Unbind();
 
-void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
 
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
+	Shader lightShader("Shaders/light.vert", "Shaders/light.frag");
 
-    lastX = xpos;
-    lastY = ypos;
+	VAO lightVAO;
+	lightVAO.Bind();
 
-    camera.processMouseMovement(xoffset, yoffset);
-}
+	VBO lightVBO(lightVertices, sizeof(lightVertices));
+	EBO lightEBO(lightIndices, sizeof(lightIndices));
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    camera.processMouseScroll(yoffset);
-}
+	// Link the Vertex Attributes to shaders
+	// 0 = position
+	lightVAO.LinkAttrib(lightVBO, 0, 3, GL_FLOAT, 3 * sizeof(float), (void*)0);
 
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+	lightVAO.Unbind();
+	lightVBO.Unbind();
+	lightEBO.Unbind();
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.processKeyboard(0, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.processKeyboard(1, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.processKeyboard(2, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.processKeyboard(3, deltaTime);
+	glm::vec4 lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    // Boat controls
-    moveBoat = glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
-    rotateBoatLeft = glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
-    rotateBoatRight = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
+	glm::vec3 lightPos(1.22f, 0.5f, 1.5f);
+	glm::mat4 lightModel = glm::mat4(1.0f);
+	lightModel = glm::translate(lightModel, lightPos);
+
+	glm::vec3 pyramidPos(0.5f, 0.5f, 0.5f);
+	glm::mat4 pyramidModel = glm::mat4(1.0f);
+	pyramidModel = glm::translate(pyramidModel, pyramidPos);
+
+	// Variables for light animation
+	float lightRotationRadius = 1.0f;
+	float lightHeight = 0.5f;
+
+	lightShader.Activate();
+	glUniformMatrix4fv(glGetUniformLocation(lightShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(lightModel));
+	glUniform4f(glGetUniformLocation(lightShader.ID, "lightColor"), lightColor.x, lightColor.y, lightColor.z, lightColor.w);
+	shaderProgram.Activate();
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(pyramidModel));
+	glUniform4f(glGetUniformLocation(shaderProgram.ID, "lightColor"), lightColor.x, lightColor.y, lightColor.z, lightColor.w);
+	glUniform3f(glGetUniformLocation(shaderProgram.ID, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
+
+
+
+
+	// Texture
+	Texture bricks("Textures/brick_12-512x512.png", GL_TEXTURE_2D, GL_TEXTURE0, GL_RGB, GL_UNSIGNED_BYTE);
+
+	// assign texture unit 0 to the texture
+	bricks.texUnit(shaderProgram, "tex0", 0);
+
+	// enable depth test so that the objects are drawn in the correct order
+	glEnable(GL_DEPTH_TEST);
+
+	Camera camera(windowWidth, windowHeight, glm::vec3(0.0f, 0.0f, 2.0f));
+
+	// Main while loop
+	while (!glfwWindowShouldClose(window))
+	{
+		// Calculate delta time for smooth animation
+		static float lastFrame = 0.0f;
+		float currentFrame = glfwGetTime();
+		float deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		// Update light position to orbit around the pyramid
+		float angle = currentFrame * 0.5f; // Controls rotation speed
+		lightPos.x = pyramidPos.x + lightRotationRadius * cos(angle);
+		lightPos.z = pyramidPos.z + lightRotationRadius * sin(angle);
+		lightPos.y = pyramidPos.y + lightHeight + 0.2f * sin(currentFrame); // Add some vertical motion
+
+		// Update light model matrix with new position
+		lightModel = glm::mat4(1.0f);
+		lightModel = glm::translate(lightModel, lightPos);
+
+		// Specify the color of the background
+		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+
+		// Clean the back buffer and assign the new color to it
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Tell OpenGL which Shader Program we want to use
+		shaderProgram.Activate();
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram.ID, "model"), 1, GL_FALSE, glm::value_ptr(pyramidModel));
+
+		// Update the light position in the shader
+		glUniform3f(glGetUniformLocation(shaderProgram.ID, "lightPos"), lightPos.x, lightPos.y, lightPos.z);
+
+		camera.updateCameraMatrix(60.0f, 0.1f, 100.0f);
+		camera.Matrix(shaderProgram, "camMatrix");
+		camera.Input(window);
+
+		// Bind the texture so OpenGL knows which one to use
+		bricks.Bind();
+
+		// Bind the VAO so OpenGL knows to use it
+		VAO1.Bind();
+
+		// Draw primitives, number of indices, datatype of indices, index of indices
+		glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
+
+		// Update the light shader with the new light model
+		lightShader.Activate();
+		// THIS LINE IS CRUCIAL: Update the model matrix in the light shader
+		glUniformMatrix4fv(glGetUniformLocation(lightShader.ID, "model"), 1, GL_FALSE, glm::value_ptr(lightModel));
+		camera.Matrix(lightShader, "camMatrix");
+		lightVAO.Bind();
+		glDrawElements(GL_TRIANGLES, sizeof(lightIndices) / sizeof(int), GL_UNSIGNED_INT, 0);
+
+		// Swap the back buffer with the front buffer
+		glfwSwapBuffers(window);
+
+		// Take care of all GLFW events
+		glfwPollEvents();
+	}
+
+
+
+
+	// Delete all the objects we've created
+	VAO1.Delete();
+	VBO1.Delete();
+	EBO1.Delete();
+	shaderProgram.Delete();
+	bricks.Delete();
+	// Delete window before ending the program
+	glfwDestroyWindow(window);
+	// Terminate GLFW before ending the program
+	glfwTerminate();
+	return 0;
 }

@@ -10,38 +10,31 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/vector_angle.hpp>
-
-#include "Boat.h"
+#include "shaderClass.h"
 
 
 class Camera {
-private:
-	glm::vec3 position;
-	glm::vec3 front;
-	glm::vec3 up;
-	glm::vec3 right;
-	glm::vec3 worldUp;
-
-	float yaw;
-	float pitch;
-
-	float movementSpeed;
-	float mouseSensitivity;
-	float zoom;
-
 public:
-	Camera(glm::vec3 pos = glm::vec3(0.0f, 5.0f, 15.0f));
+	glm::vec3 Position;
+	glm::vec3 Orientation = glm::vec3(0.0f, 0.0f, -1.0f);
+	glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::mat4 cameraMatrix = glm::mat4(1.0f);
 
-	void processKeyboard(int direction, float deltaTime);
-	void processMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
-	void processMouseScroll(float yoffset);
+	int width;
+	int height;
 
-	glm::mat4 getViewMatrix();
-	float getZoom();
+	float speed = 0.0005f;
+	float sensitivity = 100.0f;
 
-	void followBoat(const Boat& boat, float distance, float height);
-private:
-	void updateCameraVectors();
+	bool firstClick = true;
+
+
+	Camera(int width, int height, glm::vec3 position);
+
+	void updateCameraMatrix(float FOVdeg, float nearPlane, float farPlane);
+	void Matrix(Shader& shader, const char* uniform);
+	void Input(GLFWwindow* window);
+    
 };
 
 
