@@ -1,8 +1,10 @@
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\Boat.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\Boat.obj
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\Camera.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\Camera.obj
 D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\glad.c;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\glad.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_demo.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_demo.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_draw.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_draw.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_impl_glfw.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_impl_glfw.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_impl_opengl3.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_impl_opengl3.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_tables.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_tables.obj
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\imgui\imgui_widgets.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\imgui_widgets.obj
 D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\main.obj
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\Sea.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\Sea.obj
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\Sea.h;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\Sea.obj
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\Shader.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\Shader.obj
 D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\stb.cpp;D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\x64\Debug\stb.obj

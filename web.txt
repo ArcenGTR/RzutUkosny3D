@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rzut ukośny 3D - OpenGL</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 2px solid #333;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            max-width: 800px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .info {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+        .value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Symulacja rzutu ukośnego 3D</h1>
+    
+    <canvas id="glCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Prędkość początkowa: <span class="value" id="velocityValue">50</span> m/s</label>
+            <input type="range" id="velocity" min="10" max="100" value="50">
+        </div>
+        
+        <div class="control-group">
+            <label>Kąt (stopnie): <span class="value" id="angleValue">45</span>°</label>
+            <input type="range" id="angle" min="10" max="80" value="45">
+        </div>
+        
+        <div class="control-group">
+            <label>Masa (kg): <span class="value" id="massValue">1.0</span></label>
+            <input type="range" id="mass" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+        
+        <div class="control-group">
+            <label>Opór powietrza: <span class="value" id="dragValue">0.01</span></label>
+            <input type="range" id="drag" min="0" max="0.05" step="0.001" value="0.01">
+        </div>
+        
+        <div class="control-group">
+            <button id="startBtn">Start</button>
+            <button id="resetBtn">Reset</button>
+            <button id="pauseBtn" disabled>Pauza</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Obrót kamery X: <span class="value" id="rotXValue">-20</span>°</label>
+            <input type="range" id="rotX" min="-90" max="90" value="-20">
+        </div>
+        
+        <div class="control-group">
+            <label>Obrót kamery Y: <span class="value" id="rotYValue">45</span>°</label>
+            <input type="range" id="rotY" min="-180" max="180" value="45">
+        </div>
+        
+        <div class="control-group">
+            <label>Zoom: <span class="value" id="zoomValue">100</span></label>
+            <input type="range" id="zoom" min="50" max="200" value="100">
+        </div>
+    </div>
+    
+    <div class="info">
+        <p>Zasięg teoretyczny: <span class="value" id="theoreticalRange">0</span> m | 
+        Czas lotu: <span class="value" id="flightTime">0</span> s | 
+        Maksymalna wysokość: <span class="value" id="maxHeight">0</span> m</p>
+        <p>Pozycja: X=<span class="value" id="posX">0</span> Y=<span class="value" id="posY">0</span> Z=<span class="value" id="posZ">0</span></p>
+    </div>
+
+    <script>
+        // Vertex shader source
+        const vertexShaderSource = `
+            attribute vec3 aPosition;
+            attribute vec3 aNormal;
+            
+            uniform mat4 uModelMatrix;
+            uniform mat4 uViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat3 uNormalMatrix;
+            
+            varying vec3 vNormal;
+            varying vec3 vFragPos;
+            
+            void main() {
+                vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
+                vFragPos = worldPos.xyz;
+                vNormal = normalize(uNormalMatrix * aNormal);
+                
+                gl_Position = uProjectionMatrix * uViewMatrix * worldPos;
+            }
+        `;
+
+        // Fragment shader source
+        const fragmentShaderSource = `
+            precision mediump float;
+            
+            varying vec3 vNormal;
+            varying vec3 vFragPos;
+            
+            uniform vec3 uLightDirection;
+            uniform vec3 uLightColor;
+            uniform vec3 uAmbientColor;
+            uniform vec3 uObjectColor;
+            uniform vec3 uViewPos;
+            
+            void main() {
+                // Ambient lighting
+                vec3 ambient = uAmbientColor;
+                
+                // Diffuse lighting
+                vec3 norm = normalize(vNormal);
+                vec3 lightDir = normalize(-uLightDirection);
+                float diff = max(dot(norm, lightDir), 0.0);
+                vec3 diffuse = diff * uLightColor;
+                
+                // Specular lighting
+                vec3 viewDir = normalize(uViewPos - vFragPos);
+                vec3 reflectDir = reflect(-lightDir, norm);
+                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+                vec3 specular = spec * uLightColor * 0.5;
+                
+                vec3 result = (ambient + diffuse + specular) * uObjectColor;
+                gl_FragColor = vec4(result, 1.0);
+            }
+        `;
+
+        // Initialize WebGL
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert('WebGL nie jest wspierany przez Twoją przeglądarkę!');
+        }
+
+        // Compile shader
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Błąd kompilacji shadera:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            
+            return shader;
+        }
+
+        // Create shader program
+        function createShaderProgram(gl, vertexSource, fragmentSource) {
+            const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
+            const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
+            
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Błąd linkowania programu:', gl.getProgramInfoLog(program));
+                return null;
+            }
+            
+            return program;
+        }
+
+        // Matrix operations
+        class Mat4 {
+            constructor() {
+                this.data = new Float32Array(16);
+                this.identity();
+            }
+            
+            identity() {
+                this.data.fill(0);
+                this.data[0] = this.data[5] = this.data[10] = this.data[15] = 1;
+                return this;
+            }
+            
+            perspective(fov, aspect, near, far) {
+                const f = 1.0 / Math.tan(fov / 2);
+                this.data[0] = f / aspect;
+                this.data[5] = f;
+                this.data[10] = (far + near) / (near - far);
+                this.data[11] = -1;
+                this.data[14] = (2 * far * near) / (near - far);
+                this.data[15] = 0;
+                return this;
+            }
+            
+            translate(x, y, z) {
+                this.data[12] += x;
+                this.data[13] += y;
+                this.data[14] += z;
+                return this;
+            }
+            
+            scale(x, y, z) {
+                this.data[0] *= x;
+                this.data[5] *= y;
+                this.data[10] *= z;
+                return this;
+            }
+            
+            rotateX(angle) {
+                const c = Math.cos(angle);
+                const s = Math.sin(angle);
+                const temp = new Float32Array(this.data);
+                
+                this.data[5] = temp[5] * c + temp[9] * s;
+                this.data[6] = temp[6] * c + temp[10] * s;
+                this.data[9] = temp[9] * c - temp[5] * s;
+                this.data[10] = temp[10] * c - temp[6] * s;
+                return this;
+            }
+            
+            rotateY(angle) {
+                const c = Math.cos(angle);
+                const s = Math.sin(angle);
+                const temp = new Float32Array(this.data);
+                
+                this.data[0] = temp[0] * c - temp[8] * s;
+                this.data[2] = temp[2] * c - temp[10] * s;
+                this.data[8] = temp[8] * c + temp[0] * s;
+                this.data[10] = temp[10] * c + temp[2] * s;
+                return this;
+            }
+            
+            lookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ) {
+                const fx = centerX - eyeX;
+                const fy = centerY - eyeY;
+                const fz = centerZ - eyeZ;
+                
+                const len = Math.sqrt(fx*fx + fy*fy + fz*fz);
+                const nfx = fx / len;
+                const nfy = fy / len;
+                const nfz = fz / len;
+                
+                const sx = nfy * upZ - nfz * upY;
+                const sy = nfz * upX - nfx * upZ;
+                const sz = nfx * upY - nfy * upX;
+                
+                const slen = Math.sqrt(sx*sx + sy*sy + sz*sz);
+                const nsx = sx / slen;
+                const nsy = sy / slen;
+                const nsz = sz / slen;
+                
+                const ux = nsy * nfz - nsz * nfy;
+                const uy = nsz * nfx - nsx * nfz;
+                const uz = nsx * nfy - nsy * nfx;
+                
+                this.data[0] = nsx;
+                this.data[1] = ux;
+                this.data[2] = -nfx;
+                this.data[3] = 0;
+                this.data[4] = nsy;
+                this.data[5] = uy;
+                this.data[6] = -nfy;
+                this.data[7] = 0;
+                this.data[8] = nsz;
+                this.data[9] = uz;
+                this.data[10] = -nfz;
+                this.data[11] = 0;
+                this.data[12] = -(nsx * eyeX + nsy * eyeY + nsz * eyeZ);
+                this.data[13] = -(ux * eyeX + uy * eyeY + uz * eyeZ);
+                this.data[14] = -(-nfx * eyeX + -nfy * eyeY + -nfz * eyeZ);
+                this.data[15] = 1;
+                
+                return this;
+            }
+        }
+
+        // Create sphere geometry
+        function createSphere(radius, segments) {
+            const vertices = [];
+            const normals = [];
+            const indices = [];
+            
+            for (let lat = 0; lat <= segments; lat++) {
+                const theta = lat * Math.PI / segments;
+                const sinTheta = Math.sin(theta);
+                const cosTheta = Math.cos(theta);
+                
+                for (let lon = 0; lon <= segments; lon++) {
+                    const phi = lon * 2 * Math.PI / segments;
+                    const sinPhi = Math.sin(phi);
+                    const cosPhi = Math.cos(phi);
+                    
+                    const x = cosPhi * sinTheta;
+                    const y = cosTheta;
+                    const z = sinPhi * sinTheta;
+                    
+                    vertices.push(radius * x, radius * y, radius * z);
+                    normals.push(x, y, z);
+                }
+            }
+            
+            for (let lat = 0; lat < segments; lat++) {
+                for (let lon = 0; lon < segments; lon++) {
+                    const first = (lat * (segments + 1)) + lon;
+                    const second = first + segments + 1;
+                    
+                    indices.push(first, second, first + 1);
+                    indices.push(second, second + 1, first + 1);
+                }
+            }
+            
+            return { vertices, normals, indices };
+        }
+
+        // Create plane geometry
+        function createPlane(size) {
+            const vertices = [
+                -size, 0, -size,
+                 size, 0, -size,
+                 size, 0,  size,
+                -size, 0,  size
+            ];
+            
+            const normals = [
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0,
+                0, 1, 0
+            ];
+            
+            const indices = [0, 1, 2, 0, 2, 3];
+            
+            return { vertices, normals, indices };
+        }
+
+        // Initialize shader program
+        const shaderProgram = createShaderProgram(gl, vertexShaderSource, fragmentShaderSource);
+        
+        // Get attribute and uniform locations
+        const programInfo = {
+            attribLocations: {
+                position: gl.getAttribLocation(shaderProgram, 'aPosition'),
+                normal: gl.getAttribLocation(shaderProgram, 'aNormal'),
+            },
+            uniformLocations: {
+                modelMatrix: gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
+                viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
+                projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+                normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
+                lightDirection: gl.getUniformLocation(shaderProgram, 'uLightDirection'),
+                lightColor: gl.getUniformLocation(shaderProgram, 'uLightColor'),
+                ambientColor: gl.getUniformLocation(shaderProgram, 'uAmbientColor'),
+                objectColor: gl.getUniformLocation(shaderProgram, 'uObjectColor'),
+                viewPos: gl.getUniformLocation(shaderProgram, 'uViewPos'),
+            },
+        };
+
+        // Create geometry
+        const sphere = createSphere(0.5, 16);
+        const plane = createPlane(200);
+
+        // Create buffers
+        function createBuffers(geometry) {
+            const vertexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(geometry.vertices), gl.STATIC_DRAW);
+            
+            const normalBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(geometry.normals), gl.STATIC_DRAW);
+            
+            const indexBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(geometry.indices), gl.STATIC_DRAW);
+            
+            return {
+                vertex: vertexBuffer,
+                normal: normalBuffer,
+                index: indexBuffer,
+                indexCount: geometry.indices.length
+            };
+        }
+
+        const sphereBuffers = createBuffers(sphere);
+        const planeBuffers = createBuffers(plane);
+
+        // Simulation variables
+        let projectile = {
+            x: 0, y: 0, z: 0,
+            vx: 0, vy: 0, vz: 0,
+            trail: []
+        };
+        
+        let isRunning = false;
+        let isPaused = false;
+        let startTime = 0;
+        let pausedTime = 0;
+        
+        const gravity = 9.81;
+        
+        // Control elements
+        const velocitySlider = document.getElementById('velocity');
+        const angleSlider = document.getElementById('angle');
+        const massSlider = document.getElementById('mass');
+        const dragSlider = document.getElementById('drag');
+        const rotXSlider = document.getElementById('rotX');
+        const rotYSlider = document.getElementById('rotY');
+        const zoomSlider = document.getElementById('zoom');
+        
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        // Update display values
+        function updateDisplayValues() {
+            document.getElementById('velocityValue').textContent = velocitySlider.value;
+            document.getElementById('angleValue').textContent = angleSlider.value;
+            document.getElementById('massValue').textContent = parseFloat(massSlider.value).toFixed(1);
+            document.getElementById('dragValue').textContent = parseFloat(dragSlider.value).toFixed(3);
+            document.getElementById('rotXValue').textContent = rotXSlider.value;
+            document.getElementById('rotYValue').textContent = rotYSlider.value;
+            document.getElementById('zoomValue').textContent = zoomSlider.value;
+            
+            // Calculate theoretical values
+            const v0 = parseFloat(velocitySlider.value);
+            const angle = parseFloat(angleSlider.value) * Math.PI / 180;
+            
+            const range = (v0 * v0 * Math.sin(2 * angle)) / gravity;
+            const flightTime = (2 * v0 * Math.sin(angle)) / gravity;
+            const maxHeight = (v0 * v0 * Math.sin(angle) * Math.sin(angle)) / (2 * gravity);
+            
+            document.getElementById('theoreticalRange').textContent = range.toFixed(1);
+            document.getElementById('flightTime').textContent = flightTime.toFixed(1);
+            document.getElementById('maxHeight').textContent = maxHeight.toFixed(1);
+        }
+
+        // Event listeners
+        [velocitySlider, angleSlider, massSlider, dragSlider, rotXSlider, rotYSlider, zoomSlider].forEach(slider => {
+            slider.addEventListener('input', updateDisplayValues);
+        });
+
+        startBtn.addEventListener('click', startSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        pauseBtn.addEventListener('click', togglePause);
+
+        function startSimulation() {
+            const v0 = parseFloat(velocitySlider.value);
+            const angle = parseFloat(angleSlider.value) * Math.PI / 180;
+            
+            projectile.x = 0;
+            projectile.y = 0.5;
+            projectile.z = 0;
+            projectile.vx = v0 * Math.cos(angle);
+            projectile.vy = v0 * Math.sin(angle);
+            projectile.vz = 0;
+            projectile.trail = [];
+            
+            isRunning = true;
+            isPaused = false;
+            startTime = Date.now();
+            pausedTime = 0;
+            
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+        }
+
+        function resetSimulation() {
+            isRunning = false;
+            isPaused = false;
+            projectile.x = 0;
+            projectile.y = 0.5;
+            projectile.z = 0;
+            projectile.vx = 0;
+            projectile.vy = 0;
+            projectile.vz = 0;
+            projectile.trail = [];
+            
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = 'Pauza';
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                isPaused = false;
+                startTime += Date.now() - pausedTime;
+                pauseBtn.textContent = 'Pauza';
+            } else {
+                isPaused = true;
+                pausedTime = Date.now();
+                pauseBtn.textContent = 'Wznów';
+            }
+        }
+
+        // Update physics
+        function updatePhysics(deltaTime) {
+            if (!isRunning || isPaused || projectile.y < 0) return;
+            
+            const dt = deltaTime / 1000; // Convert to seconds
+            const mass = parseFloat(massSlider.value);
+            const dragCoeff = parseFloat(dragSlider.value);
+            
+            // Air resistance
+            const speed = Math.sqrt(projectile.vx*projectile.vx + projectile.vy*projectile.vy + projectile.vz*projectile.vz);
+            const dragForce = dragCoeff * speed;
+            
+            const ax = -dragForce * projectile.vx / mass;
+            const ay = -gravity - dragForce * projectile.vy / mass;
+            const az = -dragForce * projectile.vz / mass;
+            
+            // Update velocity
+            projectile.vx += ax * dt;
+            projectile.vy += ay * dt;
+            projectile.vz += az * dt;
+            
+            // Update position
+            projectile.x += projectile.vx * dt;
+            projectile.y += projectile.vy * dt;
+            projectile.z += projectile.vz * dt;
+            
+            // Add to trail
+            if (projectile.trail.length === 0 || 
+                Math.abs(projectile.x - projectile.trail[projectile.trail.length-1].x) > 1 ||
+                Math.abs(projectile.y - projectile.trail[projectile.trail.length-1].y) > 1) {
+                projectile.trail.push({x: projectile.x, y: projectile.y, z: projectile.z});
+                
+                // Limit trail length
+                if (projectile.trail.length > 100) {
+                    projectile.trail.shift();
+                }
+            }
+            
+            // Stop if hit ground
+            if (projectile.y <= 0) {
+                projectile.y = 0;
+                isRunning = false;
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+            
+            // Update position display
+            document.getElementById('posX').textContent = projectile.x.toFixed(1);
+            document.getElementById('posY').textContent = projectile.y.toFixed(1);
+            document.getElementById('posZ').textContent = projectile.z.toFixed(1);
+        }
+
+        // Render function
+        function render() {
+            gl.clearColor(0.1, 0.1, 0.2, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.enable(gl.DEPTH_TEST);
+            
+            gl.useProgram(shaderProgram);
+            
+            // Set up matrices
+            const projectionMatrix = new Mat4().perspective(Math.PI/4, canvas.width/canvas.height, 0.1, 1000.0);
+            
+            const rotX = parseFloat(rotXSlider.value) * Math.PI / 180;
+            const rotY = parseFloat(rotYSlider.value) * Math.PI / 180;
+            const zoom = parseFloat(zoomSlider.value);
+            
+            const cameraDistance = zoom;
+            const cameraX = cameraDistance * Math.sin(rotY) * Math.cos(rotX);
+            const cameraY = cameraDistance * Math.sin(rotX);
+            const cameraZ = cameraDistance * Math.cos(rotY) * Math.cos(rotX);
+            
+            const viewMatrix = new Mat4().lookAt(
+                cameraX, cameraY + 20, cameraZ,
+                0, 10, 0,
+                0, 1, 0
+            );
+            
+            // Set uniforms
+            gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix.data);
+            gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, viewMatrix.data);
+            
+            // Lighting
+            gl.uniform3f(programInfo.uniformLocations.lightDirection, -0.5, -1.0, -0.3);
+            gl.uniform3f(programInfo.uniformLocations.lightColor, 1.0, 1.0, 0.9);
+            gl.uniform3f(programInfo.uniformLocations.ambientColor, 0.2, 0.2, 0.3);
+            gl.uniform3f(programInfo.uniformLocations.viewPos, cameraX, cameraY, cameraZ);
+            
+            // Draw ground plane
+            const planeModel = new Mat4().identity();
+            gl.uniformMatrix4fv(programInfo.uniformLocations.modelMatrix, false, planeModel.data);
+            gl.uniformMatrix3fv(programInfo.uniformLocations.normalMatrix, false, new Float32Array([1,0,0,0,1,0,0,0,1]));
+            gl.uniform3f(programInfo.uniformLocations.objectColor, 0.2, 0.5, 0.2);
+            
+            drawObject(planeBuffers);
+            
+            // Draw projectile
+            const projectileModel = new Mat4().identity().translate(projectile.x, projectile.y, projectile.z);
+            gl.uniformMatrix4fv(programInfo.uniformLocations.modelMatrix, false, projectileModel.data);
+            gl.uniformMatrix3fv(programInfo.uniformLocations.normalMatrix, false, new Float32Array([1,0,0,0,1,0,0,0,1]));
+            gl.uniform3f(programInfo.uniformLocations.objectColor, 1.0, 0.3, 0.3);
+            
+            drawObject(sphereBuffers);
+            
+            // Draw trail
+            if (projectile.trail.length > 1) {
+                gl.uniform3f(programInfo.uniformLocations.objectColor, 1.0, 0.8, 0.2);
+                for (let i = 0; i < projectile.trail.length; i++) {
+                    const trailModel = new Mat4().identity()
+                        .translate(projectile.trail[i].x, projectile.trail[i].y, projectile.trail[i].z)
+                        .scale(0.3, 0.3, 0.3);
+                    gl.uniformMatrix4fv(programInfo.uniformLocations.modelMatrix, false, trailModel.data);
+                    drawObject(sphereBuffers);
+                }
+            }
+        }
+
+        function drawObject(buffers) {
+            // Bind vertex buffer
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertex);
+            gl.vertexAttribPointer(programInfo.attribLocations.position, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(programInfo.attribLocations.position);
+            
+            // Bind normal buffer
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+            gl.vertexAttribPointer(programInfo.attribLocations.normal, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(programInfo.attribLocations.normal);
+            
+            // Bind index buffer and draw
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
+            gl.drawElements(gl.TRIANGLES, buffers.indexCount, gl.UNSIGNED_SHORT, 0);
+        }
+
+        // Animation loop
+        let lastTime = 0;
+        function animate(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            updatePhysics(deltaTime);
+            render();
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        updateDisplayValues();
+        resetSimulation();
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
