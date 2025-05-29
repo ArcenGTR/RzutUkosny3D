@@ -35,8 +35,56 @@ float gravity = 9.81f;
 float velocity = 50.0f, angle = 45.0f, mass = 1.0f, drag = 0.01f;
 float restitution = 0.6f;
 float rotX = 0.0f, rotY = 45.0f, zoom = 100.0f;
-float camXOffset = 0.0f, camYOffset = 20.0f, camZOffset = 0.0f;
 
+glm::vec3 cameraPos = glm::vec3(0.0f, 20.0f, 100.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float lastX = 400, lastY = 300;
+bool firstMouse = true;
+float yaw = -90.0f;
+float pitch = 0.0f;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+}
+
+void processInput(GLFWwindow* window, float deltaTime) {
+    float speed = 50.0f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += speed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= speed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
+}
 
 float toRadians(float degrees) { return degrees * 3.1415926f / 180.0f; }
 
@@ -151,10 +199,7 @@ void renderScene() {
     glEnable(GL_DEPTH_TEST);
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 1000.0f);
-    float camX = zoom * sin(toRadians(rotY)) * cos(toRadians(rotX));
-    float camY = zoom * sin(toRadians(rotX));
-    float camZ = zoom * cos(toRadians(rotY)) * cos(toRadians(rotX));
-    glm::mat4 view = glm::lookAt(glm::vec3(camX, camY + 20, camZ), glm::vec3(0, 10, 0), glm::vec3(0, 1, 0));
+    glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
     renderGround();
 
@@ -210,6 +255,9 @@ int main() {
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -227,6 +275,7 @@ int main() {
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
+        processInput(window, deltaTime);
         glfwPollEvents();
         update(deltaTime);
 
@@ -241,10 +290,6 @@ int main() {
         ImGui::SliderFloat("Opor powietrza", &drag, 0.0f, 0.05f);
         ImGui::SliderFloat("Grawitacja", &gravity, 0.0f, 20.0f);
         ImGui::SliderFloat("Otracie (Restytucja)", &restitution, 0.0f, 1.0f);
-        ImGui::SliderFloat("Obrot X", &rotX, -90.0f, 90.0f);
-        ImGui::SliderFloat("Obrot Y", &rotY, -180.0f, 360.0f);
-        ImGui::SliderFloat("Zoom", &zoom, 50.0f, 200.0f);
-
         if (ImGui::Button("Start")) { reset(); isRunning = true; }
         ImGui::SameLine();
         if (ImGui::Button("Reset")) { reset(); }

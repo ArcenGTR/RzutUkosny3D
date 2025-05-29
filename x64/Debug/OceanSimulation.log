@@ -1,5 +1,11 @@
 ﻿  main.cpp
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(207,53): warning C4566: character represented by universal-character-name '\u015B' cannot be represented in the current code page (1251)
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(221,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(224,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(50,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(51,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(55,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(56,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(57,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(58,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(254,53): warning C4566: character represented by universal-character-name '\u015B' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(271,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(274,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   OceanSimulation.vcxproj -> D:\Code\C++\Grafika AGH\OceanSimulation\x64\Debug\OceanSimulation.exe
