@@ -33,7 +33,10 @@ bool isRunning = false;
 
 float gravity = 9.81f;
 float velocity = 50.0f, angle = 45.0f, mass = 1.0f, drag = 0.01f;
+float restitution = 0.6f;
 float rotX = 0.0f, rotY = 45.0f, zoom = 100.0f;
+float camXOffset = 0.0f, camYOffset = 20.0f, camZOffset = 0.0f;
+
 
 float toRadians(float degrees) { return degrees * 3.1415926f / 180.0f; }
 
@@ -46,11 +49,15 @@ void reset() {
 }
 
 void update(float dt) {
-    if (!isRunning || proj.pos.y < 0) return;
+    if (!isRunning) return;
 
     float speed = std::sqrt(proj.vel.x * proj.vel.x + proj.vel.y * proj.vel.y + proj.vel.z * proj.vel.z);
     float fdrag = drag * speed;
-    Vec3 acc = { -fdrag * proj.vel.x / mass, -gravity - fdrag * proj.vel.y / mass, -fdrag * proj.vel.z / mass };
+    Vec3 acc = {
+        -fdrag * proj.vel.x / mass,
+        -gravity - fdrag * proj.vel.y / mass,
+        -fdrag * proj.vel.z / mass
+    };
 
     proj.vel = proj.vel + acc * dt;
     proj.pos = proj.pos + proj.vel * dt;
@@ -60,9 +67,14 @@ void update(float dt) {
         if (proj.trail.size() > 100) proj.trail.erase(proj.trail.begin());
     }
 
-    if (proj.pos.y <= 0) {
-        proj.pos.y = 0;
-        isRunning = false;
+    if (proj.pos.y <= 0.0f && proj.vel.y < 0.0f) {
+        proj.pos.y = 0.0f;
+        proj.vel.y = -proj.vel.y * restitution;
+
+        if (std::abs(proj.vel.y) < 0.5f) {
+            proj.vel.y = 0;
+            isRunning = false;
+        }
     }
 }
 
@@ -224,11 +236,13 @@ int main() {
 
         ImGui::Begin("Sterowanie");
         ImGui::SliderFloat("Predkosc poczatkowa", &velocity, 10.0f, 100.0f);
-        ImGui::SliderFloat("Kat (stopnie)", &angle, 10.0f, 90.0f);
+        ImGui::SliderFloat("Kat (stopnie)", &angle, 10.0f, 80.0f);
         ImGui::SliderFloat("Masa", &mass, 0.1f, 5.0f);
         ImGui::SliderFloat("Opor powietrza", &drag, 0.0f, 0.05f);
+        ImGui::SliderFloat("Grawitacja", &gravity, 0.0f, 20.0f);
+        ImGui::SliderFloat("Otracie (Restytucja)", &restitution, 0.0f, 1.0f);
         ImGui::SliderFloat("Obrot X", &rotX, -90.0f, 90.0f);
-        ImGui::SliderFloat("Obrot Y", &rotY, -180.0f, 180.0f);
+        ImGui::SliderFloat("Obrot Y", &rotY, -180.0f, 360.0f);
         ImGui::SliderFloat("Zoom", &zoom, 50.0f, 200.0f);
 
         if (ImGui::Button("Start")) { reset(); isRunning = true; }
