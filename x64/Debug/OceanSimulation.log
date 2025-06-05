@@ -1,11 +1,20 @@
 ﻿  main.cpp
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(50,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(51,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(55,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(56,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(57,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(58,13): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(254,53): warning C4566: character represented by universal-character-name '\u015B' cannot be represented in the current code page (1251)
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(271,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(274,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(128,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(129,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(133,23): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(134,23): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(135,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(136,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(167,27): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(168,28): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(554,120): warning C4267: 'argument': conversion from 'size_t' to 'GLsizei', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(697,22): warning C4566: character represented by universal-character-name '\u0142' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(697,22): warning C4566: character represented by universal-character-name '\u0105' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(697,22): warning C4566: character represented by universal-character-name '\u017C' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(697,22): warning C4566: character represented by universal-character-name '\u0107' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(704,53): warning C4566: character represented by universal-character-name '\u015B' cannot be represented in the current code page (1251)
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(721,20): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(727,19): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(728,20): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Code\C++\Grafika AGH\OceanSimulation\OceanSimulation\main.cpp(731,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
   OceanSimulation.vcxproj -> D:\Code\C++\Grafika AGH\OceanSimulation\x64\Debug\OceanSimulation.exe

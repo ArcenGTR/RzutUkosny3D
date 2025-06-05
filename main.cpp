@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include <vector>
+#include <fstream>
 #include <iostream>
 #include <algorithm> // Dla std::max, std::min
 #include <map>       // Dla std::map do przechowywania tekstur
@@ -27,6 +28,28 @@
 #ifndef offsetof
 #define offsetof(st, m) ((size_t)&(((st*)0)->m))
 #endif
+
+char* get_file_contents(const char* filename)
+{
+    std::ifstream in(filename, std::ios::binary);
+    if (in)
+    {
+        in.seekg(0, std::ios::end);
+        std::streamsize size = in.tellg();
+        in.seekg(0, std::ios::beg);
+
+        char* buffer = new char[size + 1];
+        if (!in.read(buffer, size))
+        {
+            delete[] buffer;
+            throw std::runtime_error("Error reading file");
+        }
+        buffer[size] = '\0';
+        in.close();
+        return buffer;
+    }
+    throw errno;
+}
 
 // Struktury
 struct Vec3 {
@@ -631,82 +654,8 @@ GLuint compileShader(GLenum type, const char* src) {
 }
 
 GLuint createShaderProgram() {
-    // Vertex Shader
-    const char* vs = R"(
-        #version 330 core
-        layout(location = 0) in vec3 aPos;
-        layout(location = 1) in vec3 aNormal; // Normalne
-        layout(location = 2) in vec2 aTexCoords; // Współrzędne teksturowe
-
-        uniform mat4 uProjection, uView, uModel;
-
-        out vec2 TexCoords; // Przekazujemy TexCoords do Fragment Shadera
-        out vec3 Normal;
-        out vec3 FragPos;
-
-        void main() {
-            TexCoords = aTexCoords;
-            FragPos = vec3(uModel * vec4(aPos, 1.0));
-            Normal = mat3(transpose(inverse(uModel))) * aNormal; // Transformacja normalnych
-            gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
-        }
-    )";
-
-    // Fragment Shader
-    const char* fs = R"(
-        #version 330 core
-        out vec4 FragColor;
-
-        in vec2 TexCoords;
-        in vec3 Normal;
-        in vec3 FragPos;
-
-        uniform vec4 uColor; // Kolor dla nietersturowanych obiektów (teraz z alfą)
-        uniform sampler2D uTexture; // Tekstura
-        uniform int useTexture; // Flaga do przełączania
-        uniform int disableLighting; // Nowa flaga do wyłączania oświetlenia
-
-        // Podstawowe oświetlenie
-        uniform vec3 lightPos = vec3(0.0, 50.0, 50.0);
-        uniform vec3 viewPos; // Pozycja kamery (widza)
-        uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
-
-        void main() {
-            vec3 lightingResult;
-
-            if (disableLighting == 1) {
-                // Jeśli oświetlenie wyłączone, ustawiamy na bazowy kolor (bez modyfikacji)
-                lightingResult = vec3(1.0); // Brak wpływu oświetlenia na kolor
-            } else {
-                // Ambient
-                vec3 ambient = 0.1 * lightColor;
-
-                // Diffuse
-                vec3 norm = normalize(Normal);
-                vec3 lightDir = normalize(lightPos - FragPos);
-                float diff = max(dot(norm, lightDir), 0.0);
-                vec3 diffuse = diff * lightColor;
-
-                // Specular (podstawowy)
-                vec3 viewDir = normalize(viewPos - FragPos);
-                vec3 reflectDir = reflect(-lightDir, norm);
-                float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32); // 32 to shininess
-                vec3 specular = spec * lightColor * 0.5; // Mniejsza intensywność
-
-                // Kombinacja wszystkich składników oświetlenia
-                lightingResult = ambient + diffuse + specular;
-            }
-
-            if (useTexture == 1) {
-                // Obiekty teksturowane
-                vec4 texColor = texture(uTexture, TexCoords);
-                FragColor = vec4(lightingResult * texColor.rgb, texColor.a);
-            } else {
-                // Obiekty kolorowe (bez tekstury)
-                FragColor = vec4(lightingResult * uColor.rgb, uColor.a);
-            }
-        }
-    )";
+	char* vs = get_file_contents("default.vert");
+    char* fs = get_file_contents("default.frag");
 
     GLuint v = compileShader(GL_VERTEX_SHADER, vs);
     GLuint f = compileShader(GL_FRAGMENT_SHADER, fs);

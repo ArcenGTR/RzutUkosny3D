@@ -177,6 +177,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
+    <None Include="default.frag" />
+    <None Include="default.vert" />
     <None Include="Shaders\default.frag" />
     <None Include="Shaders\default.vert" />
     <None Include="Shaders\light.frag" />
