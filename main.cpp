@@ -14,6 +14,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_impl_opengl3.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -73,10 +74,10 @@ struct Projectile {
 // Nowa struktura dla klocków
 struct Block {
     Vec3 pos;
-    Vec3 vel; // Nadal tu jest, ale nie będzie używane w update
+    Vec3 vel; // nie uzywane obecnie
     Vec3 size; // Wymiary klocka (np. 1.0f, 1.0f, 1.0f dla sześcianu)
-    float mass; // Nie będzie używane w update
-    float restitution; // Nie będzie używane w update
+    float mass;  // nie uzywane obecnie
+    float restitution;  // nie uzywane obecnie
     GLuint textureID; // ID tekstury dla tego konkretnego klocka
 };
 
@@ -224,24 +225,25 @@ void reset() {
     initBlocks(); // Resetuj klocki za każdym razem
 }
 
-// Funkcja do sprawdzania kolizji kula-AABB (Bounding Box)
-// Zwraca CollisionInfo zawierające flagę kolizji, normalną i głębokość penetracji.
+// Funkcja do sprawdzania kolizji kula-AABB 
+// zwraca flagę kolizji, normalną i głębokość penetracji jako collisioninfor
 CollisionInfo checkCollisionSphereAABB(const Vec3& sphereCenter, float sphereRadius, const Block& block) {
     CollisionInfo info;
-    Vec3 blockMin = block.pos - block.size * 0.5f;
-    Vec3 blockMax = block.pos + block.size * 0.5f;
+    Vec3 blockMin = block.pos - block.size * 0.5f;//dolny lewy tylni rog
+    Vec3 blockMax = block.pos + block.size * 0.5f;//gorny prawy przedni rog
 
     // Najbliższy punkt na AABB do centrum sfery (clampowanie)
+    //sprawdza czy srodek kuli znajduje sie pomiedzy sfera i tworzy punkt na powierzchni lub wewnatrz najblizej srodkowi sfery
     float closestX = std::max(blockMin.x, std::min(sphereCenter.x, blockMax.x));
     float closestY = std::max(blockMin.y, std::min(sphereCenter.y, blockMax.y));
     float closestZ = std::max(blockMin.z, std::min(sphereCenter.z, blockMax.z));
 
-    Vec3 closestPoint = { closestX, closestY, closestZ };
+    Vec3 closestPoint = { closestX, closestY, closestZ };//odleglosci od punktu do srodka sfery
     Vec3 distanceVec = sphereCenter - closestPoint;
     float distanceSq = distanceVec.dot(distanceVec);
     float radiusSq = sphereRadius * sphereRadius;
 
-    if (distanceSq < radiusSq) {
+    if (distanceSq < radiusSq) {//jesli odleglosc najblizszego punktu do srodka sfery jest mniejsza niz promien sfery kolizja nastapila
         info.collided = true;
 
         // Bardziej dokładna normalna kolizji:
@@ -253,7 +255,7 @@ CollisionInfo checkCollisionSphereAABB(const Vec3& sphereCenter, float sphereRad
             info.normal = { 0.0f, 1.0f, 0.0f };
         }
         // Glębokość penetracji to promień sfery minus długość wektora odległości
-        info.penetrationDepth = sphereRadius - distanceVec.length();
+        info.penetrationDepth = sphereRadius - distanceVec.length();//uzywane w update do odepchniecia pocisku na zewnatrz
 
     }
     return info;
@@ -264,22 +266,17 @@ void update(float dt) {
     if (!isRunning) return;
 
     // Fizyka pocisku
-    float speed = proj.vel.length();
-    float fdrag = drag * speed;
+    float speed = proj.vel.length();//predkosc skalarna pocisku
+    float fdrag = drag * speed;//oblicza opor powietrza, pilka porusza sie szybciej = wiekszy opor
     Vec3 acc = {
-        -fdrag * proj.vel.x / mass,
+        -fdrag * proj.vel.x / mass,//wieksza masa mniejsze przyspieszenie
         -gravity - fdrag * proj.vel.y / mass,
         -fdrag * proj.vel.z / mass
     };
 
     proj.vel = proj.vel + acc * dt;
 
-    // --- TUTAJ DODAJEMY NOWY WSPÓŁCZYNNIK HAMOWANIA ---
-    // Zmniejsza prędkość piłki w każdym kroku czasowym
-    // Im mniejszy dampingFactor (bliżej 0), tym szybciej zwalnia.
-    // DampingFactor = 1.0f oznacza brak hamowania.
-    proj.vel = proj.vel * dampingFactor;
-    // --------------------------------------------------
+    proj.vel = proj.vel * dampingFactor;//wspolczynnik hamowania zmniejsza predkosc skladowych predkosci pilki w kazdym kroku czasowym
 
     proj.pos = proj.pos + proj.vel * dt;
 
@@ -288,11 +285,11 @@ void update(float dt) {
     // Kolizja pocisku z ziemią
     if (proj.pos.y - sphereRadius <= 0.0f && proj.vel.y < 0.0f) {
         proj.pos.y = sphereRadius; // Odsuń piłkę na powierzchnię ziemi
-        proj.vel.y = -proj.vel.y * restitution; // Odbicie
+        proj.vel.y = -proj.vel.y * restitution; // Odbicie, mnozy predkosc.y przez otarcie
     }
 
-    // Dodano warunek na zmianę pozycji dla trail, aby uwzględnić Z
-    if (proj.trail.empty() || std::abs(proj.pos.x - proj.trail.back().x) > 1.0f || std::abs(proj.pos.y - proj.trail.back().y) > 1.0f || std::abs(proj.pos.z - proj.trail.back().z) > 1.0f) {
+    // warunek na zmianę pozycji dla trail, aby uwzględnić Z
+    if (proj.trail.empty() || std::abs(proj.pos.x - proj.trail.back().x) > 1.0f || std::abs(proj.pos.y - proj.trail.back().y) > 1.0f || std::abs(proj.pos.z - proj.trail.back().z) > 1.0f) {//dodaje trail jezeli sciezka pusta lub pilka przemiescila sie o 1.0f
         proj.trail.push_back(proj.pos);
         if (proj.trail.size() > 100) proj.trail.erase(proj.trail.begin());
     }
@@ -301,7 +298,7 @@ void update(float dt) {
     for (auto& block : blocks) {
         CollisionInfo colInfo = checkCollisionSphereAABB(proj.pos, sphereRadius, block);
         if (colInfo.collided) {
-            // Rozwiązanie penetracji: odsuń piłkę
+            // rozwiazanie problemu z zablokowaniem sie pilki w klocku: odsuń piłkę
             // Dodajemy mały epsilon, aby upewnić się, że piłka jest poza obiektem
             proj.pos = proj.pos + colInfo.normal * (colInfo.penetrationDepth + 0.001f);
 
@@ -317,8 +314,7 @@ void update(float dt) {
         }
     }
 
-    // Zatrzymanie ruchu, jeśli prędkość spadnie poniżej progu
-    // Tylko jeśli piłka jest blisko ziemi (lub na niej)
+    // Zatrzymanie ruchu, jeśli prędkość spadnie poniżej progu i pilka jest na ziemi
     if (isRunning && proj.vel.length() < 0.2f && proj.pos.y < 1.0f) {
         proj.vel = { 0,0,0 }; // Ustaw prędkość na zero
         isRunning = false;  // Zatrzymuje symulację
@@ -457,7 +453,7 @@ void initSphereVAO() {
     glBindVertexArray(0); // Odwiązanie VAO
 }
 
-// Nowa funkcja do inicjalizacji VAO dla klocka
+// funkcja do inicjalizacji VAO dla klocka
 void initBlockVAO() {
     glGenVertexArrays(1, &vaoBlock);
     glGenBuffers(1, &vboBlock);
@@ -517,8 +513,7 @@ GLuint loadTexture(const char* path) {
 }
 
 
-// Uogólniona funkcja renderująca obiekty
-// Dodano parametr 'applyLighting'
+// funkcja renderująca obiekty
 void renderObject(const glm::mat4& model, const glm::mat4& view, const glm::mat4& proj_mat, const glm::vec4& color, GLuint currentTextureID, bool textured, bool applyLighting, GLuint vao, GLsizei elementCount, GLenum mode = GL_TRIANGLES) {
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProjection"), 1, GL_FALSE, glm::value_ptr(proj_mat));
@@ -678,7 +673,7 @@ GLuint createShaderProgram() {
 }
 
 
-// Nowa funkcja do inicjalizacji wszystkich zasobów OpenGL
+// funkcja do inicjalizacji wszystkich zasobów OpenGL
 void initGL() {
     shaderProgram = createShaderProgram();
     initSphereVAO();
@@ -690,9 +685,6 @@ void initGL() {
     textures["textures/placeholder_ground.jpg"] = loadTexture("textures/placeholder_ground.jpg"); // Tekstura dla ziemi
     textureIDProjectile = loadTexture("textures/placeholder_ball.jpg"); // Tekstura dla pocisku
 
-    // Upewnij się, że textures/placeholder_ball.jpg istnieje,
-    // jeśli nie, możesz użyć domyślnej tekstury lub renderować bez niej.
-    // Jeśli plik nie istnieje, loadTexture zwróci 0.
     if (textureIDProjectile == 0) {
         std::cerr << "Błąd: Nie załadowano tekstury dla pocisku. Pocisk może być renderowany jako kolor." << std::endl;
     }
@@ -701,7 +693,7 @@ void initGL() {
 
 int main() {
     glfwInit();
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Rzut ukośny 3D", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1000, 800, "Rzut ukosny 3D", nullptr, nullptr);
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
@@ -715,7 +707,7 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    initGL(); // Wywołujemy naszą nową funkcję inicjalizującą GL
+    initGL(); //funkcję inicjalizującą GL
 
     reset(); // Resetuje również klocki
     float lastTime = glfwGetTime();
@@ -754,8 +746,7 @@ int main() {
         ImGui::SliderFloat("Masa pocisku", &mass, 0.1f, 5.0f);
         ImGui::SliderFloat("Opor powietrza", &drag, 0.0f, 0.05f);
         ImGui::SliderFloat("Grawitacja", &gravity, 0.0f, 20.0f);
-        ImGui::SliderFloat("Otracie (Restytucja)", &restitution, 0.0f, 1.0f);
-        // TUTAJ ZNAJDUJE SIĘ SUWAK DO KONTROLI WSPÓŁCZYNNIKA HAMOWANIA
+        ImGui::SliderFloat("Restytucja", &restitution, 0.0f, 1.0f);
         ImGui::SliderFloat("Wspolczynnik Hamowania", &dampingFactor, 0.9f, 0.999f);
 
         if (ImGui::Button("Start")) { reset(); isRunning = true; }
